@@ -58,7 +58,22 @@ var connection = mysql.createConnection({
             .then(function(answer) {
                 if (answer.checkout.toUpperCase() === "CONFIRM PURCHASE") {
                     if (product.stock >= quantity) {
-
+                        connection.query(
+                            "UPDATE auctions SET ? WHERE ?",
+                            [
+                              {
+                                stock: quantity
+                              }
+                            ],
+                            function(error) {
+                              if (error) throw err;
+                              console.log("Bid placed successfully!");
+                              start();
+                            }
+                          );
+                    } else {
+                        console.log("😕: Sorry, Stranger. Don't have enough of that on stock.");
+                        start();
                     }
                 } else if(answer.checkout.toUpperCase() === "ASK FOR DISCOUNT") {
                     
@@ -105,4 +120,3 @@ start()
 
 
         
-      

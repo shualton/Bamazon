@@ -1,7 +1,7 @@
 //packages needed to be installed
 var inquirer = require('inquirer');
 var mysql = require('mysql');
-
+var wallet = 100.0;
 //connect to store database
 var connection = mysql.createConnection({
     host: "localhost",
@@ -40,7 +40,7 @@ var connection = mysql.createConnection({
 		{
 			type: "input",
 			name: "selection",
-            message: "Type in the ID number of an item\n",
+            message: "Type in the ID number of an item",
 		},
 		{
 			type: "input",
@@ -52,7 +52,9 @@ var connection = mysql.createConnection({
         var quantity = order.quantity;
         connection.query("SELECT * FROM products", function(err, response) {
             var product = response[id - 1];
+            var inventory = product.stock;
             var total = product.price * quantity;
+            var luck = Math.floor((Math.random() * 10) + 1);
             console.log("You have selected " + quantity + " " + product + "(s) for a total cost of $" + total);
             if (err) throw err;
             //second inquirer asks the user how he wants to proceed with the order
@@ -65,9 +67,16 @@ var connection = mysql.createConnection({
             .then(function(answer) {
                 if (answer.checkout.toUpperCase() === "CONFIRM PURCHASE") {
                     //if you confirm purchase the code checks whether or not the desired item has enough stock
+                    //also checks if you have enough money
                     //if yes, then the purchased stock is deducted and the new stock is updated
                     //if not, it sends you back to the buying phase
-                    if (product.stock >= quantity) {
+                    if (inventory < quantity) {
+                        console.log("😕: Sorry, Stranger. Don't have enough of that on stock.");
+                        start();
+                    } else if (total > wallet) {
+                        console.log("😕: Damn, Stranger. Seems you're short on funds.");
+                        start();
+                    } else {
                         connection.query(
                             "UPDATE auctions SET ? WHERE ?",
                             [
@@ -78,17 +87,66 @@ var connection = mysql.createConnection({
                             function(error) {
                               if (error) throw err;
                               console.log("🤠:Pleasure doin' business with ya!");
+                              wallet -= total;
                               start();
                             }
                           );
-                    } else {
-                        console.log("😕: Sorry, Stranger. Don't have enough of that on stock.");
-                        start();
                     }
                 } else if(answer.checkout.toUpperCase() === "ASK FOR DISCOUNT") {
-                    
+                    if (luck >= 7) {
+                        console.log("🤔:Alright, alright. For you, I'll make an exeption.")
+                        total = (total * 0.5);
+                        if (inventory < quantity) {
+                            console.log("😕: Sorry, Stranger. Don't have enough of that on stock.");
+                            start();
+                        } else if (total > wallet) {
+                            console.log("😕: Damn, Stranger. Seems you're short on funds.");
+                            start();
+                        } else {
+                            connection.query(
+                                "UPDATE auctions SET ? WHERE ?",
+                                [
+                                  {
+                                    stock: quantity
+                                  }
+                                ],
+                                function(error) {
+                                  if (error) throw err;
+                                  console.log("🤠:Pleasure doin' business with ya!");
+                                  wallet -= total;
+                                  start();
+                                }
+                              );
+                        }
+                    } else if (luck > 2) {
+                        console.log("😑: No can do. I'm trying to run a business here! Try again.")
+                        displayStore();
+                        buy();
+                    } else {
+                        console.log("😤: How dare you! This is a fine establishment, not some street market! I think it's best y'all leave now.");
+                        console.log("You got kicked out of the store!");
+                        connection.end();
+                    }
                 } else if (answer.checkout.toUpperCase() === "TRY TO STEAL") {
-                     
+                     if (luck > 5) {
+                        connection.query(
+                            "UPDATE auctions SET ? WHERE ?",
+                            [
+                              {
+                                stock: quantity
+                              }
+                            ],
+                            function(error) {
+                              if (error) throw err;
+                              console.log("You successfully stole the item(s)!");
+                              start();
+                            }
+                          );
+                     } else {
+                         console.log("🔫😡: Hands up, Buddy! Nobody steals from my store!")
+                         console.log("You ran out of there as fast as possible");
+                         connection.end();
+                     }
                 } else {
                     console.log("😕: Feeling indecisive today, are we?");
                     start();
@@ -119,7 +177,7 @@ var connection = mysql.createConnection({
 		}
 
 	  	console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-
+        console.log("Wallet: $" + wallet +"\n");
 	  	;
 	})
 }

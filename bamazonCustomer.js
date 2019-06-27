@@ -1,6 +1,8 @@
+//packages needed to be installed
 var inquirer = require('inquirer');
 var mysql = require('mysql');
 
+//connect to store database
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
@@ -9,6 +11,7 @@ var connection = mysql.createConnection({
     database: "BamazonDB"
   });
 
+//function which starts the shopping program
   function start() {
     inquirer
       .prompt({
@@ -19,10 +22,12 @@ var connection = mysql.createConnection({
       })
       .then(function(answer) {
         if (answer.buyOrSell.toUpperCase() === "BUY") {
+          //choosing buy will display store inventory and then activate buy function
           console.log("🤠:Itchin' to shop? Well then you've come to the right place!")  
           displayStore();
           buy();
         } else {
+            //the program ends if you select to leave
             console.log("🤠:Happy trails, compadre!")
             connection.end();
         }
@@ -30,6 +35,7 @@ var connection = mysql.createConnection({
   }
 
   function buy() {
+    //this first inquirer prompt asks the user to place an order
     inquirer.prompt([
 		{
 			type: "input",
@@ -49,6 +55,7 @@ var connection = mysql.createConnection({
             var total = product.price * quantity;
             console.log("You have selected " + quantity + " " + product + "(s) for a total cost of $" + total);
             if (err) throw err;
+            //second inquirer asks the user how he wants to proceed with the order
             inquirer.prompt({
                 name: "checkout",
                 type: "list",
@@ -57,6 +64,9 @@ var connection = mysql.createConnection({
             })
             .then(function(answer) {
                 if (answer.checkout.toUpperCase() === "CONFIRM PURCHASE") {
+                    //if you confirm purchase the code checks whether or not the desired item has enough stock
+                    //if yes, then the purchased stock is deducted and the new stock is updated
+                    //if not, it sends you back to the buying phase
                     if (product.stock >= quantity) {
                         connection.query(
                             "UPDATE auctions SET ? WHERE ?",
@@ -67,7 +77,7 @@ var connection = mysql.createConnection({
                             ],
                             function(error) {
                               if (error) throw err;
-                              console.log("Bid placed successfully!");
+                              console.log("🤠:Pleasure doin' business with ya!");
                               start();
                             }
                           );

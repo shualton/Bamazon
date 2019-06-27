@@ -9,56 +9,100 @@ var connection = mysql.createConnection({
     database: "BamazonDB"
   });
 
-  function startShopping() {
+  function start() {
+    inquirer
+      .prompt({
+        name: "buyOrSell",
+        type: "list",
+        message: "What can I do for you, Stranger?",
+        choices: ["BUY", "LEAVE"]
+      })
+      .then(function(answer) {
+        if (answer.buyOrSell.toUpperCase() === "BUY") {
+          console.log("🤠:Itchin' to shop? Well then you've come to the right place!")  
+          displayStore();
+          buy();
+        } else {
+            console.log("🤠:Happy trails, compadre!")
+            connection.end();
+        }
+      });
+  }
+
+  function buy() {
     inquirer.prompt([
 		{
-			type: 'input',
-			name: 'selection',
-            message: 'Now which of them here items tickles your fancy? Point me to an ID number and Ill grab it for you',
+			type: "input",
+			name: "selection",
+            message: "Type in the ID number of an item\n",
 		},
 		{
-			type: 'input',
-			name: 'quantity',
-			message: 'How many of these can I get you, Stranger?',
+			type: "input",
+			name: "quantity",
+			message: "Type in a quantity for the item",
         }
-    ]).then(function(input) {
-		var item = input.selection;
-		var quantity = input.quantity;
-		var query = 'SELECT * FROM products WHERE ?';
+    ]).then(function(order) {
+        var id = order.selection;
+        var quantity = order.quantity;
+        connection.query("SELECT * FROM products", function(err, response) {
+            var product = response[id - 1];
+            var total = product.price * quantity;
+            console.log("You have selected " + quantity + " " + product + "(s) for a total cost of $" + total);
+            if (err) throw err;
+            inquirer.prompt({
+                name: "checkout",
+                type: "list",
+                message: "What will you do next?",
+                choices: ["CONFIRM PURCHASE", "ASK FOR DISCOUNT", "TRY TO STEAL", "CANCEL ORDER"]
+            })
+            .then(function(answer) {
+                if (answer.checkout.toUpperCase() === "CONFIRM PURCHASE") {
+                    if (product.stock >= quantity) {
 
-		connection.query(query, {selection: item}, function(err, response) {
-			if (err) throw err;
-			if (data.length === 0) {
-				console.log('ERROR: Invalid Item ID. Please select a valid Item ID.');
-				displayInventory();
-			} else {
-				var productData = data[0];
-				if (quantity <= productData.stock_quantity) {
-					console.log('Congratulations, the product you requested is in stock! Placing order!');
-
-					// Construct the updating query string
-					var updateQueryStr = 'UPDATE products SET stock_quantity = ' + (productData.stock_quantity - quantity) + ' WHERE item_id = ' + item;
-					// console.log('updateQueryStr = ' + updateQueryStr);
-
-					// Update the inventory
-					connection.query(updateQueryStr, function(err, data) {
-						if (err) throw err;
-
-						console.log('Your oder has been placed! Your total is $' + productData.price * quantity);
-						console.log('Thank you for shopping with us!');
-						console.log("\n---------------------------------------------------------------------\n");
-
-						// End the database connection
-						connection.end();
-					})
-				} else {
-					console.log('Sorry, there is not enough product in stock, your order can not be placed as is.');
-					console.log('Please modify your order.');
-					console.log("\n---------------------------------------------------------------------\n");
-
-					displayInventory();
-				}
-			}
-		})
+                    }
+                } else if(answer.checkout.toUpperCase() === "ASK FOR DISCOUNT") {
+                    
+                } else if (answer.checkout.toUpperCase() === "TRY TO STEAL") {
+                     
+                } else {
+                    console.log("😕: Feeling indecisive today, are we?");
+                    start();
+                }
+            });
+        });
 	})
   }
+
+  function displayStore() {
+	query = 'SELECT * FROM store';
+	connection.query(query, function(err, response) {
+        if (err) throw err;
+        console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		console.log("Slippery Sam's Rootin' Tootin' General Store");
+		console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+
+		var displayString = "";
+		for (var i = 0; i < response.length; i++) {
+			displayString = "";
+			displayString += "ID: " + response[i].id + "  ||  ";
+			displayString+= "Item: " + response[i].item + "  ||  ";
+            displayString += "Type: " + response[i].type + "  ||  ";
+            displayString += "Price: $" + response[i].price + "  ||  ";
+			displayString += "Stock: " + response[i].stock + "\n";
+
+			console.log(displayString);
+		}
+
+	  	console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+	  	;
+	})
+}
+
+console.log("🤠:Howdy! My Name is Slippery Sam! Welcome to my general store!");
+
+start()
+
+
+        
+      

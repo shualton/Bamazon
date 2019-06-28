@@ -97,7 +97,7 @@ var connection = mysql.createConnection({
                     } else if (luck > 2) {
                         console.log("😑: No can do. I'm trying to run a business here! Try again.")
                         displayStore();
-                        buy();
+                        setTimeout(buy,500);
                     } else {
                         console.log("😤: How dare you! This is a fine establishment, not some street market! I think it's best y'all leave now.");
                         console.log("You got kicked out of the store!");
